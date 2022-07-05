@@ -124,19 +124,6 @@ local L_10_ = game.Players.LocalPlayer
 local L_11_ = L_10_:GetMouse()
 local L_12_ = game:GetService("RunService")
 
-circle = Drawing.new("Circle")
-circle.Color = Color3.fromRGB(109, 5, 173)
-circle.Thickness = 0.1
-circle.NumSides = 3500
-circle.Radius = 50
-circle.Visible = false
-circle.Filled = false
-circle.Transparency = 0.5
-
-L_12_.RenderStepped:Connect(function()
-	circle.Position = Vector2.new(L_11_.X, L_11_.Y + 35)
-end)
-
 
 getgenv().OldAimPart = "HumanoidRootPart"
 getgenv().AimPart = "HumanoidRootPart" 
@@ -326,7 +313,237 @@ if getgenv().AutoPrediction == true then
 	end
 end
 
+getgenv().OldAimPart = "UpperTorso"
+    getgenv().AimPart = "UpperTorso" 
+        getgenv().AimlockKey = "q"
+        getgenv().AimRadius = 30 
+        getgenv().ThirdPerson = true 
+        getgenv().FirstPerson = true
+        getgenv().TeamCheck = false 
+        getgenv().PredictMovement = true 
+        getgenv().PredictionVelocity = 6.612
+        getgenv().CheckIfJumped = true
+        getgenv().Smoothness = false
+        getgenv().SmoothnessAmount = 0.0273
+    
+        local Players, Uis, RService, SGui = game:GetService"Players", game:GetService"UserInputService", game:GetService"RunService", game:GetService"StarterGui";
+        local Client, Mouse, Camera, CF, RNew, Vec3, Vec2 = Players.LocalPlayer, Players.LocalPlayer:GetMouse(), workspace.CurrentCamera, CFrame.new, Ray.new, Vector3.new, Vector2.new;
+        local Aimlock, MousePressed, CanNotify = false, false, false;
+        local AimlockTarget;
+        local OldPre;
+        
+    
+        
+        getgenv().WorldToViewportPoint = function(P)
+            return Camera:WorldToViewportPoint(P)
+        end
+        
+        getgenv().WorldToScreenPoint = function(P)
+            return Camera.WorldToScreenPoint(Camera, P)
+        end
+        
+        getgenv().GetObscuringObjects = function(T)
+            if T and T:FindFirstChild(getgenv().AimPart) and Client and Client.Character:FindFirstChild("Head") then 
+                local RayPos = workspace:FindPartOnRay(RNew(
+                    T[getgenv().AimPart].Position, Client.Character.Head.Position)
+                )
+                if RayPos then return RayPos:IsDescendantOf(T) end
+            end
+        end
+        
+        getgenv().GetNearestTarget = function()
+            -- Credits to whoever made this, i didnt make it, and my own mouse2plr function kinda sucks
+            local players = {}
+            local PLAYER_HOLD  = {}
+            local DISTANCES = {}
+            for i, v in pairs(Players:GetPlayers()) do
+                if v ~= Client then
+                    table.insert(players, v)
+                end
+            end
+            for i, v in pairs(players) do
+                if v.Character ~= nil then
+                    local AIM = v.Character:FindFirstChild("Head")
+                    if getgenv().TeamCheck == true and v.Team ~= Client.Team then
+                        local DISTANCE = (v.Character:FindFirstChild("Head").Position - game.Workspace.CurrentCamera.CFrame.p).magnitude
+                        local RAY = Ray.new(game.Workspace.CurrentCamera.CFrame.p, (Mouse.Hit.p - game.Workspace.CurrentCamera.CFrame.p).unit * DISTANCE)
+                        local HIT,POS = game.Workspace:FindPartOnRay(RAY, game.Workspace)
+                        local DIFF = math.floor((POS - AIM.Position).magnitude)
+                        PLAYER_HOLD[v.Name .. i] = {}
+                        PLAYER_HOLD[v.Name .. i].dist= DISTANCE
+                        PLAYER_HOLD[v.Name .. i].plr = v
+                        PLAYER_HOLD[v.Name .. i].diff = DIFF
+                        table.insert(DISTANCES, DIFF)
+                    elseif getgenv().TeamCheck == false and v.Team == Client.Team then 
+                        local DISTANCE = (v.Character:FindFirstChild("Head").Position - game.Workspace.CurrentCamera.CFrame.p).magnitude
+                        local RAY = Ray.new(game.Workspace.CurrentCamera.CFrame.p, (Mouse.Hit.p - game.Workspace.CurrentCamera.CFrame.p).unit * DISTANCE)
+                        local HIT,POS = game.Workspace:FindPartOnRay(RAY, game.Workspace)
+                        local DIFF = math.floor((POS - AIM.Position).magnitude)
+                        PLAYER_HOLD[v.Name .. i] = {}
+                        PLAYER_HOLD[v.Name .. i].dist= DISTANCE
+                        PLAYER_HOLD[v.Name .. i].plr = v
+                        PLAYER_HOLD[v.Name .. i].diff = DIFF
+                        table.insert(DISTANCES, DIFF)
+                    end
+                end
+            end
+            
+            if unpack(DISTANCES) == nil then
+                return nil
+            end
+            
+            local L_DISTANCE = math.floor(math.min(unpack(DISTANCES)))
+            if L_DISTANCE > getgenv().AimRadius then
+                return nil
+            end
+            
+            for i, v in pairs(PLAYER_HOLD) do
+                if v.diff == L_DISTANCE then
+                    return v.plr
+                end
+            end
+            return nil
+        end
+        
+        Mouse.KeyDown:Connect(function(a)
+            if not (Uis:GetFocusedTextBox()) then 
+                if a == AimlockKey and AimlockTarget == nil then
+                    pcall(function()
+                        if MousePressed ~= true then MousePressed = true end 
+                        local Target;Target = GetNearestTarget()
+                        if Target ~= nil then 
+                            AimlockTarget = Target
+                        end
+                    end)
+                elseif a == AimlockKey and AimlockTarget ~= nil then
+                    if AimlockTarget ~= nil then AimlockTarget = nil end
+                    if MousePressed ~= false then 
+                        MousePressed = false 
+                    end
+                end
+            end
+        end)
+        
+        RService.RenderStepped:Connect(function()
+            if getgenv().ThirdPerson == true and getgenv().FirstPerson == true then 
+                if (Camera.Focus.p - Camera.CoordinateFrame.p).Magnitude > 1 or (Camera.Focus.p - Camera.CoordinateFrame.p).Magnitude <= 1 then 
+                    CanNotify = true 
+                else 
+                    CanNotify = false 
+                end
+            elseif getgenv().ThirdPerson == true and getgenv().FirstPerson == false then 
+                if (Camera.Focus.p - Camera.CoordinateFrame.p).Magnitude > 1 then 
+                    CanNotify = true 
+                else 
+                    CanNotify = false 
+                end
+            elseif getgenv().ThirdPerson == false and getgenv().FirstPerson == true then 
+                if (Camera.Focus.p - Camera.CoordinateFrame.p).Magnitude <= 1 then 
+                    CanNotify = true 
+                else 
+                    CanNotify = false 
+                end
+            end
+            if Aimlock == true and MousePressed == true then 
+                if AimlockTarget and AimlockTarget.Character and AimlockTarget.Character:FindFirstChild(getgenv().AimPart) then 
+                    if getgenv().FirstPerson == true then
+                        if CanNotify == true then
+                            if getgenv().PredictMovement == true then
+                                if getgenv().Smoothness == true then
+                                    --// The part we're going to lerp/smoothen \\--
+                                    local Main = CF(Camera.CFrame.p, AimlockTarget.Character[getgenv().AimPart].Position + AimlockTarget.Character[getgenv().AimPart].Velocity/PredictionVelocity)
+                                    
+                                    --// Making it work \\--
+                                    Camera.CFrame = Camera.CFrame:Lerp(Main, getgenv().SmoothnessAmount, Enum.EasingStyle.Elastic, Enum.EasingDirection.InOut)
+                                else
+                                    Camera.CFrame = CF(Camera.CFrame.p, AimlockTarget.Character[getgenv().AimPart].Position + AimlockTarget.Character[getgenv().AimPart].Velocity/PredictionVelocity)
+                                end
+                            elseif getgenv().PredictMovement == false then 
+                                if getgenv().Smoothness == true then
+                                    --// The part we're going to lerp/smoothen \\--
+                                    local Main = CF(Camera.CFrame.p, AimlockTarget.Character[getgenv().AimPart].Position)
+    
+                                    --// Making it work \\--
+                                    Camera.CFrame = Camera.CFrame:Lerp(Main, getgenv().SmoothnessAmount, Enum.EasingStyle.Elastic, Enum.EasingDirection.InOut)
+                                else
+                                    Camera.CFrame = CF(Camera.CFrame.p, AimlockTarget.Character[getgenv().AimPart].Position)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+             if CheckIfJumped == true then
+           if AimlockTarget.Character.HuDDDDDDDDDDWmanoid.FloorMaterial == Enum.Material.Air then
+        
+               getgenv().AimPart = "UpperTorso"
+           else
+             getgenv().AimPart = getgenv().OldAimPart
+    
+           end
+        end
+    end)
 
+local Aiming = loadstring(game:HttpGet("https://raw.githubusercontent.com/TokwaWare/TokwaWare-Premium-Silent-Aim/main/Silent%20Aim"))()
+Aiming.TeamCheck(false)
+
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local CurrentCamera = Workspace.CurrentCamera
+
+local DaHoodSettings = {
+    SilentAim = false,
+    AimLock = false,
+    Prediction = 0.157,
+    AimLockKeybind = Enum.KeyCode.E
+}
+getgenv().DaHoodSettings = DaHoodSettings
+
+function Aiming.Check()
+    if not (Aiming.Enabled == true and Aiming.Selected ~= LocalPlayer and Aiming.SelectedPart ~= nil) then
+        return false
+    end
+
+    local Character = Aiming.Character(Aiming.Selected)
+    local KOd = Character:WaitForChild("BodyEffects")["K.O"].Value
+    local Grabbed = Character:FindFirstChild("GRABBING_CONSTRAINT") ~= nil
+
+    if (KOd or Grabbed) then
+        return false
+    end
+
+    return true
+end
+
+local __index
+__index = hookmetamethod(game, "__index", function(t, k)
+    if (t:IsA("Mouse") and (k == "Hit" or k == "Target") and Aiming.Check()) then
+        local SelectedPart = Aiming.SelectedPart
+
+        if (DaHoodSettings.SilentAim and (k == "Hit" or k == "Target")) then
+            local Hit = SelectedPart.CFrame + (SelectedPart.Velocity * DaHoodSettings.Prediction)
+
+            return (k == "Hit" and Hit or SelectedPart)
+        end
+    end
+
+    return __index(t, k)
+end)
+
+RunService:BindToRenderStep("AimLock", 0, function()
+    if (DaHoodSettings.AimLock and Aiming.Check() and UserInputService:IsKeyDown(DaHoodSettings.AimLockKeybind)) then
+        local SelectedPart = Aiming.SelectedPart
+
+        local Hit = SelectedPart.CFrame + (SelectedPart.Velocity * DaHoodSettings.Prediction)
+
+        CurrentCamera.CFrame = CFrame.lookAt(CurrentCamera.CFrame.Position, Hit.Position)
+    end
+    end)
 
 -- lib shit
 local L_29_ =
@@ -340,13 +557,14 @@ local L_34_ = L_31_:CreateTab("Misc")
 local L_91_ = L_31_:CreateTab("Visuals")
 -- sections
 local L_35_ = L_32_:CreateSector("Aimbot")
-local L_36_ = L_32_:CreateSector("FOV")
+local L_36_ = L_32_:CreateSector("Aimbot v2")
 local L_37_ = L_32_:CreateSector("Anti-Aim", "Right")
+local L_38_ = L_32_:CreateSector("Silent Aim", "Right")
 local L_39_ = L_34_:CreateSector("Misc")
 local L_40_ = L_34_:CreateSector("Character")
 local L_41_ = L_34_:CreateSector("Teleports", "Right")
-local L_43_ = L_33_:CreateSector("Silent Aim")
-local L_45_ = L_33_:CreateSector("Silent Aim Settings", "Right")
+local L_43_ = L_33_:CreateSector("Silent Aimbot")
+local L_45_ = L_33_:CreateSector("Silent Aimbot Settings", "Right")
 local L_92_ = L_91_:CreateSector("ESP", "Right")
 local L_93_ = L_91_:CreateSector("Chams", "Right")
 
@@ -356,12 +574,11 @@ local L_93_ = L_91_:CreateSector("Chams", "Right")
 local L_46_ = L_35_:AddToggle("Enable", false, function(L_122_arg0)
 	L_24_ = L_122_arg0
 end)
-
-local L_47_ = L_35_:AddTextbox("Bind", "", function(L_123_arg0)
+local L_47_ = L_35_:AddTextbox("Keybind", "", function(L_123_arg0)
 	AimlockKey = L_123_arg0
 end)
 local L_48_ = L_35_:AddTextbox("Prediction Velocity", "", function(L_124_arg0)
-	PredictionVelocity = bananaxd
+	getgenv().PredictionVelocity = 6.612
 end)
 local L_49_ = L_35_:AddDropdown("AimPart",  {
 	"Head",
@@ -374,27 +591,46 @@ local L_49_ = L_35_:AddDropdown("AimPart",  {
 	getgenv().OldAimPart = L_125_arg0
 end)
 
-local L_51_ = L_36_:AddToggle("Aimbot FOV", false, function(L_127_arg0)
-	circle.Visible = L_127_arg0
+local L_400_ = L_38_:AddToggle("Enable", false, function(bool)
+	DaHoodSettings.SilentAim = bool
 end)
-L_51_:AddColorpicker(Color3.new(), function(L_128_arg0)
-	circle.Color = L_128_arg0
+L_400_:AddKeybind()
+L_38_:AddToggle("Visible Check", false, function(bool)
+	Aiming.VisibleCheck = bool
+end)
+L_38_:AddTextbox("Keybind", "", function(bool)
+	AimlockKey = bool
+end)
+L_38_:AddTextbox("Prediction", "", function(bool)
+	DaHoodSettings.Prediction = bool
+end)
+L_38_:AddToggle("Show FOV", false, function(bool)
+	Aiming.ShowFOV = bool
+end)
+L_38_:AddSlider("FOV Size", 0, 10, 100, 25, function(bool)
+	Aiming.FOV = bool
 end)
 
-L_36_:AddToggle("Filled", false, function(L_129_arg0)
-	circle.Filled = L_129_arg0
+L_36_:AddToggle("Enable", false, function(bool)
+	Aimlock = bool
 end)
-
-L_36_:AddSlider("Size", 0, 1, 320, 30, function(L_130_arg0)
-	circle.Radius = L_130_arg0
+L_36_:AddToggle("Smoothness", false, function(bool)
+	getgenv().Smoothness = bool
 end)
-
-L_36_:AddToggle("Square FOV", false, function()
-	circle.NumSides = 4
+L_36_:AddTextbox("Keybind", "", function(bool)
+	getgenv().AimlockKey = bool
 end)
-
-L_36_:AddToggle("Circle FOV", false, function()
-	circle.NumSides = 350
+L_36_:AddTextbox("Prediction Velocity", "", function(bool)
+	getgenv().PredictionVelocity = bool
+end)
+L_36_:AddDropdown("AimPart",  {
+	"Head",
+	"UpperTorso",
+	"HumanoidRootPart",
+	"LowerTorso",
+}, "UpperTorso", function(bool)
+	getgenv().OldAimPart = "UpperTorso"
+    getgenv().AimPart = "UpperTorso"
 end)
 
 
