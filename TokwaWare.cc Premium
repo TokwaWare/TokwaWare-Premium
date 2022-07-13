@@ -578,7 +578,7 @@ local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/qvrwd
 local window = library:new({textsize = 13.5,font = Enum.Font.RobotoMono,name = "👑TofuWare👑  | Da Hood | v.2.0.0",color = Color3.fromRGB(0,0,128)})
 
 --Tabs
-local tab1 = window:page({name = "Legit"})
+local tab1 = window:page({name = "Main"})
 local tab2 = window:page({name = "Anti"})
 local tab3 = window:page({name = "Visual"})
 local tab4 = window:page({name = "Misc"})
