@@ -620,7 +620,7 @@ end})
 section2:toggle({name = "Enable Smoothing",def = false,callback = function(bool)
 	getgenv().Smoothness = bool
 end})
-section2:textbox({name = "Smoothing Amount",def = "7",placeholder = "Enter Smoothing Amount",callback = function(bool)
+section2:textbox({name = "Smoothing Amount",def = "0.0273",placeholder = "Enter Smoothing Amount",callback = function(bool)
 	getgenv().SmoothnessAmount = bool
 end})
 section2:dropdown({name = "Aimpart",def = "HumanoidRootPart",max = 4,options = {"Head","UpperTorso","HumanoidRootPart","LowerTorso"},callback = function(bool)
